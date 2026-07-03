@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Ever Rise — Curiosidades</title>
+<style>
+  :root{
+    --dark-blue:#041062;
+    --purple:#4D00B5;
+    --cta-orange:#FD742C; /* uso exclusivo: CTA e emergência — nunca decorativo */
+    --white:#FFFFFF;
+    --neutral-bg:#F4F7FA;
+    --neutral-border:#E8EAF0;
+    --text-dark:#1A1A2E;
+    --text-muted:#6B7280;
+    --correct-green:#2f9e5b;
+    --correct-bg:#c9f2d8;
+    --incorrect-red:#c0392b;
+    --incorrect-bg:#f7d7d2;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  body{
+    font-family:'Segoe UI', Roboto, Arial, sans-serif;
+    background: linear-gradient(160deg, var(--neutral-bg) 0%, var(--white) 100%);
+    color: var(--text-dark);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+  }
+
+  .app{
+    width:100%;
+    max-width: 620px;
+  }
+
+  .brand{
+    text-align:center;
+    margin-bottom: 18px;
+  }
+
+  .brand h1{
+    color: var(--dark-blue);
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+  }
+
+  .brand span{
+    display:block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    opacity: 0.9;
+    margin-top: 4px;
+  }
+
+  .card{
+    background: var(--white);
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(4,16,98,0.15);
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    min-height: 420px;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .card::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height:6px;
+    background: linear-gradient(90deg, var(--dark-blue), var(--purple));
+  }
+
+  /* Barra de progresso */
+  .progress-wrap{
+    margin-bottom: 24px;
+  }
+
+  .progress-info{
+    display:flex;
+    justify-content:space-between;
+    font-size: 0.85rem;
+    color: var(--dark-blue);
+    font-weight:600;
+    margin-bottom: 8px;
+  }
+
+  .progress-bar{
+    width:100%;
+    height: 8px;
+    background: var(--neutral-border);
+    border-radius: 20px;
+    overflow:hidden;
+  }
+
+  .progress-fill{
+    height:100%;
+    background: linear-gradient(90deg, var(--dark-blue), var(--purple));
+    border-radius: 20px;
+    transition: width 0.4s ease;
+  }
+
+  /* Tela de pergunta */
+  #question-screen{
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .question-text{
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    line-height: 1.4;
+    color: var(--text-dark);
+  }
+
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap: 12px;
+    flex:1;
+  }
+
+  .option-btn{
+    text-align:left;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 2px solid var(--neutral-border);
+    background: var(--neutral-bg);
+    color: var(--text-dark);
+    font-size: 1rem;
+    cursor:pointer;
+    transition: all 0.2s ease;
+  }
+
+  .option-btn:hover:not(:disabled){
+    border-color: var(--purple);
+    background: #f1ebfb;
+    transform: translateX(4px);
+  }
+
+  .option-btn.selected{
+    border-color: var(--purple);
+    background: #e4d9f7;
+  }
+
+  .option-btn.correct{
+    border-color: var(--correct-green);
+    background: var(--correct-bg);
+    font-weight:600;
+  }
+
+  .option-btn.incorrect{
+    border-color: var(--incorrect-red);
+    background: var(--incorrect-bg);
+  }
+
+  .option-btn:disabled{
+    cursor:not-allowed;
+    opacity: 0.9;
+  }
+
+  .next-btn{
+    margin-top: 20px;
+    align-self: flex-end;
+    padding: 12px 28px;
+    border:none;
+    border-radius: 30px;
+    background: var(--cta-orange);
+    color: var(--white);
+    font-size: 1rem;
+    font-weight:600;
+    cursor:pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    display:none;
+  }
+
+  .next-btn:hover{
+    background:#e5601a;
+    transform: translateY(-2px);
+  }
+
+  /* Telas de resultado */
+  .result-screen{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    flex:1;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .result-icon{
+    font-size: 4rem;
+    margin-bottom: 16px;
+  }
+
+  .result-title{
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .result-score{
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: var(--text-dark);
+    opacity: 0.85;
+  }
+
+  .win .result-title{ color: var(--dark-blue); }
+
+  .prize-box{
+    background: linear-gradient(135deg, #f1ebfb, var(--white));
+    border: 2px dashed var(--cta-orange);
+    border-radius: 16px;
+    padding: 18px 24px;
+    margin-bottom: 24px;
+  }
+
+  .prize-box p{
+    font-weight:600;
+    color: var(--purple);
+    font-size: 1.05rem;
+  }
+
+  .lose .result-title{ color: var(--dark-blue); }
+
+  .restart-btn{
+    padding: 12px 30px;
+    border:none;
+    border-radius: 30px;
+    background: var(--cta-orange);
+    color: var(--white);
+    font-size: 1rem;
+    font-weight:600;
+    cursor:pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .restart-btn:hover{
+    background:#e5601a;
+    transform: translateY(-2px);
+  }
+
+  .tagline{
+    text-align:center;
+    margin-top: 18px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+    font-style: italic;
+  }
+
+  @keyframes fadeIn{
+    from{ opacity:0; transform: translateY(10px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px){
+    .card{ padding: 22px; }
+    .question-text{ font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="brand">
+    <h1>Ever Rise</h1>
+    <span>Quiz de Curiosidades — Medical Solutions</span>
+  </div>
+
+  <div class="card">
+
+    <!-- TELA DE PERGUNTAS -->
+    <div id="question-screen">
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span id="question-counter">Pergunta 1 de 10</span>
+          <span id="score-display">Pontos: 0</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:10%"></div>
+        </div>
+      </div>
+
+      <p class="question-text" id="question-text"></p>
+      <div class="options" id="options-container"></div>
+
+      <button class="next-btn" id="next-btn">Próxima →</button>
+    </div>
+
+    <!-- TELA DE VITÓRIA -->
+    <div class="result-screen win" id="win-screen">
+      <div class="result-icon">🏆</div>
+      <div class="result-title">Parabéns! Você manda bem em Ever Rise!</div>
+      <div class="result-score" id="win-score"></div>
+      <div class="prize-box">
+        <p>🎁 Você desbloqueou um brinde exclusivo da Ever Rise!<br>Procure a nossa equipe no estande do Demoday para retirar o seu.</p>
+      </div>
+      <button class="restart-btn" onclick="restartQuiz()">Jogar novamente</button>
+    </div>
+
+    <!-- TELA DE DERROTA -->
+    <div class="result-screen lose" id="lose-screen">
+      <div class="result-icon">💡</div>
+      <div class="result-title">Quase lá!</div>
+      <div class="result-score" id="lose-score"></div>
+      <p style="margin-bottom:20px; max-width:420px;">
+        Ainda não desta vez, mas a Ever Rise tem muita história pra contar!
+        Passe no nosso estande, converse com a equipe e descubra tudo sobre
+        o guincho autônomo que está devolvendo movimento a quem mais precisa.
+      </p>
+      <button class="restart-btn" onclick="restartQuiz()">Tentar novamente</button>
+    </div>
+
+  </div>
+
+  <p class="tagline">"A ascensão que transforma vidas."</p>
+</div>
+
+<script>
+  // ==========================================================
+  // BANCO DE PERGUNTAS
+  // A resposta correta é sempre o índice em "correct" (0 a 3).
+  // ==========================================================
+  const questions = [
+    {
+      question: "Qual é o principal objetivo do guincho autônomo da Ever Rise?",
+      options: [
+        "Transportar cargas em depósitos",
+        "Auxiliar na transferência e reabilitação de pacientes hospitalares",
+        "Fazer entregas dentro do hospital",
+        "Substituir cadeiras de rodas comuns"
+      ],
+      correct: 1
+    },
+    {
+      question: "Qual microcontrolador é responsável pelo firmware e controle PID do guincho?",
+      options: ["Arduino Uno", "Raspberry Pi", "ESP32", "STM32"],
+      correct: 2
+    },
+    {
+      question: "Qual componente é usado para monitorar o peso/pressão do paciente em tempo real?",
+      options: ["Sensor FSR 402", "Sensor ultrassônico", "Encoder óptico", "Sensor de temperatura"],
+      correct: 0
+    },
+    {
+      question: "Onde roda o modelo de detecção de obstáculos por visão computacional (YOLOv5n)?",
+      options: [
+        "Em um servidor na nuvem",
+        "No navegador do usuário",
+        "Localmente no Raspberry Pi, 100% offline",
+        "No próprio ESP32"
+      ],
+      correct: 2
+    },
+    {
+      question: "Qual é a cor oficial reservada EXCLUSIVAMENTE para alertas de emergência na Ever Rise?",
+      options: ["Aquamarine", "Baltic Blue", "Princeton Orange", "Beige"],
+      correct: 2
+    },
+    {
+      question: "Qual é a altura da maquete/protótipo físico atual do guincho?",
+      options: ["40 cm", "60 cm", "80 cm", "1 metro"],
+      correct: 1
+    },
+    {
+      question: "Qual driver é utilizado para controlar os motores DC de tração do guincho?",
+      options: ["L298N", "BTS7960", "A4988", "DRV8825"],
+      correct: 1
+    },
+    {
+      question: "Qual é o mascote oficial que aparece no chat de suporte da Ever Rise?",
+      options: ["Fin", "Nina", "Lipe", "Tico"],
+      correct: 2
+    },
+    {
+      question: "O que diferencia o Plano Clínica do Plano Família na Ever Rise?",
+      options: [
+        "Garantia estendida do equipamento",
+        "Suporte a múltiplos dispositivos e telemetria",
+        "Impressão 3D de peças inclusa",
+        "Preço fixo vitalício"
+      ],
+      correct: 1
+    },
+    {
+      question: "Qual é a tagline oficial da Ever Rise?",
+      options: [
+        "O futuro da mobilidade é agora",
+        "Reabilitação sem limites",
+        "A ascensão que transforma vidas",
+        "Inovação que devolve o movimento"
+      ],
+      correct: 2
+    }
+  ];
+
+  // ==========================================================
+  // LÓGICA DO QUIZ
+  // ==========================================================
+  let currentQuestion = 0;
+  let score = 0;
+  let answered = false;
+
+  const questionText = document.getElementById('question-text');
+  const optionsContainer = document.getElementById('options-container');
+  const nextBtn = document.getElementById('next-btn');
+  const questionCounter = document.getElementById('question-counter');
+  const scoreDisplay = document.getElementById('score-display');
+  const progressFill = document.getElementById('progress-fill');
+
+  const questionScreen = document.getElementById('question-screen');
+  const winScreen = document.getElementById('win-screen');
+  const loseScreen = document.getElementById('lose-screen');
+
+  function loadQuestion(){
+    answered = false;
+    nextBtn.style.display = 'none';
+
+    const q = questions[currentQuestion];
+    questionText.textContent = q.question;
+    questionCounter.textContent = `Pergunta ${currentQuestion + 1} de ${questions.length}`;
+    scoreDisplay.textContent = `Pontos: ${score}`;
+    progressFill.style.width = `${((currentQuestion) / questions.length) * 100}%`;
+
+    optionsContainer.innerHTML = '';
+
+    q.options.forEach((optionTextValue, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = optionTextValue;
+      btn.addEventListener('click', () => selectAnswer(index, btn));
+      optionsContainer.appendChild(btn);
+    });
+  }
+
+  function selectAnswer(selectedIndex, btnEl){
+    if(answered) return;
+    answered = true;
+
+    const q = questions[currentQuestion];
+    const allButtons = optionsContainer.querySelectorAll('.option-btn');
+
+    allButtons.forEach((btn, idx) => {
+      btn.disabled = true;
+      if(idx === q.correct){
+        btn.classList.add('correct');
+      } else if(idx === selectedIndex){
+        btn.classList.add('incorrect');
+      }
+    });
+
+    if(selectedIndex === q.correct){
+      score++;
+      scoreDisplay.textContent = `Pontos: ${score}`;
+    }
+
+    nextBtn.style.display = 'inline-block';
+  }
+
+  nextBtn.addEventListener('click', () => {
+    currentQuestion++;
+    if(currentQuestion < questions.length){
+      loadQuestion();
+    } else {
+      showResult();
+    }
+  });
+
+  function showResult(){
+    questionScreen.style.display = 'none';
+    progressFill.style.width = '100%';
+
+    if(score > 6){
+      winScreen.style.display = 'flex';
+      document.getElementById('win-score').textContent =
+        `Você acertou ${score} de ${questions.length} perguntas!`;
+    } else {
+      loseScreen.style.display = 'flex';
+      document.getElementById('lose-score').textContent =
+        `Você acertou ${score} de ${questions.length} perguntas.`;
+    }
+  }
+
+  function restartQuiz(){
+    currentQuestion = 0;
+    score = 0;
+    winScreen.style.display = 'none';
+    loseScreen.style.display = 'none';
+    questionScreen.style.display = 'flex';
+    loadQuestion();
+  }
+
+  // Inicializa o quiz
+  loadQuestion();
+</script>
+
+</body>
+</html>
